@@ -76,6 +76,11 @@ function ChatPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
+  const [pendingInitialSend, setPendingInitialSend] = useState<{
+    conversationId: string;
+    messageId: string;
+    text: string;
+  } | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeConversationIdRef = useRef<string | null>(null);
 
@@ -231,11 +236,37 @@ function ChatPage() {
 
   const busy = status === "submitted" || status === "streaming";
 
+  useEffect(() => {
+    if (!conversationId || pendingInitialSend || busy) return;
+    setMessages(initialMessages);
+  }, [busy, conversationId, initialMessages, pendingInitialSend, setMessages]);
+
+  useEffect(() => {
+    if (
+      !pendingInitialSend ||
+      conversationId !== pendingInitialSend.conversationId ||
+      status !== "ready"
+    ) {
+      return;
+    }
+
+    setMessages([
+      {
+        id: pendingInitialSend.messageId,
+        role: "user",
+        parts: [{ type: "text", text: pendingInitialSend.text }],
+      },
+    ]);
+    setPendingInitialSend(null);
+    void sendMessage();
+  }, [conversationId, pendingInitialSend, sendMessage, setMessages, status]);
+
   const submit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const text = input.trim();
     if (!text || busy) return;
     setPersistenceError(null);
+    const isNewConversation = !conversationId;
     try {
       const convId = await ensureConversation(text);
       activeConversationIdRef.current = convId;
@@ -255,7 +286,11 @@ function ChatPage() {
         throw insertError;
       }
       setInput("");
-      sendMessage({ text });
+      if (isNewConversation) {
+        setPendingInitialSend({ conversationId: convId, messageId: userMsgId, text });
+      } else {
+        void sendMessage({ text });
+      }
     } catch (err) {
       console.error("[chat] failed to send");
       console.error(err);
