@@ -29,15 +29,15 @@ const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/chat", label: "Chat", icon: MessageSquare },
   { to: "/voice", label: "Voice", icon: Mic },
-  { to: "/learn", label: "Learn", icon: GraduationCap },
-  { to: "/explore", label: "Explore", icon: Target },
-  { to: "/search", label: "Search", icon: Search },
-  { to: "/ai", label: "AI", icon: Brain },
+  { to: "/study", label: "Study", icon: GraduationCap },
+  { to: "/tasks", label: "Tasks", icon: Target },
+  { to: "/research", label: "Research", icon: Search },
+  { to: "/memory", label: "Memory", icon: Brain },
   { to: "/documents", label: "Documents", icon: FileText },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
-const PRIMARY_NAV = NAV.filter((item) => ["/", "/chat", "/voice", "/learn"].includes(item.to));
+const PRIMARY_NAV = NAV.filter((item) => ["/", "/chat", "/voice", "/study"].includes(item.to));
 const SECONDARY_NAV = NAV.filter((item) => !PRIMARY_NAV.some((primary) => primary.to === item.to));
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -92,10 +92,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       const user = session?.user ?? null;
       if (!mounted) return;
       setUser(user);
-      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && user) {
-        navigate({ to: "/chat" });
-        void ensureUserDefaults(user);
-      }
+if (event === "SIGNED_IN" && user) {
+  navigate({ to: "/chat" });
+}
+
+if (user) {
+  void ensureUserDefaults(user);
+}
     });
 
     return () => {
